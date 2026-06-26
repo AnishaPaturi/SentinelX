@@ -1,0 +1,74 @@
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+
+public class BannerGrabber {
+
+    public static String grabBanner(String host, int port) {
+        return grabBanner(host, port, 1000);
+    }
+
+    public static String grabBanner(String host, int port, int timeoutMs) {
+        // Try passive read first
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeoutMs);
+            socket.setSoTimeout(timeoutMs);
+            
+            InputStream in = socket.getInputStream();
+            byte[] buffer = new byte[1024];
+            
+            // Wait briefly to see if server greets automatically
+            int bytesRead = in.read(buffer);
+            if (bytesRead > 0) {
+                return new String(buffer, 0, bytesRead).trim();
+            }
+        } catch (Exception ignored) {}
+
+        // Active probing for HTTP
+        if (port == 80 || port == 8080 || port == 443) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(host, port), timeoutMs);
+                socket.setSoTimeout(timeoutMs);
+                
+                OutputStream out = socket.getOutputStream();
+                out.write("HEAD / HTTP/1.1\r\nHost: localhost\r\n\r\n".getBytes());
+                out.flush();
+                
+                InputStream in = socket.getInputStream();
+                byte[] buffer = new byte[1024];
+                int bytesRead = in.read(buffer);
+                if (bytesRead > 0) {
+                    String res = new String(buffer, 0, bytesRead).trim();
+                    // Extract Server header if present
+                    for (String line : res.split("\r\n")) {
+                        if (line.toLowerCase().startsWith("server:")) {
+                            return line.substring(7).trim();
+                        }
+                    }
+                    return res.split("\r\n")[0]; // Fallback to HTTP response line
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Active probing for other ports (like SMTP 25, FTP 21 etc. if needed)
+        // Usually FTP/SMTP greet automatically, but we can try sending a generic carriage return or HELO
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeoutMs);
+            socket.setSoTimeout(timeoutMs);
+            
+            OutputStream out = socket.getOutputStream();
+            out.write("\r\n".getBytes());
+            out.flush();
+            
+            InputStream in = socket.getInputStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead = in.read(buffer);
+            if (bytesRead > 0) {
+                return new String(buffer, 0, bytesRead).trim();
+            }
+        } catch (Exception ignored) {}
+
+        return "No banner";
+    }
+}
