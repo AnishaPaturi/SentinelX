@@ -120,6 +120,24 @@ The backend auto-seeds three default accounts upon launch. Log in using these cr
 
 ---
 
+## 🔌 Dynamic API Endpoint Specifications
+
+The Spring Boot backend exposes the following REST APIs to make the React frontend completely dynamic:
+
+* **Subnet Discovery:**
+  * `GET /api/devices`: Triggers a concurrent subnet ping scan (`192.168.1.1-254`), decodes network properties, and computes dynamic coordinates for circular network topology plotting.
+* **Packet Sniffer:**
+  * `GET /api/sniffer/packets`: Retrieves the ring buffer list of last captured/sniffed network packets.
+  * `GET /api/sniffer/alerts`: Retrieves active security threat warnings compiled by backend IDS heuristics (e.g., ARP spoofing, TCP SYN flood).
+  * `POST /api/sniffer/toggle`: Pauses or resumes the packet capture listener threads on the server.
+  * `GET /api/sniffer/status`: Returns the running state (active/paused) of the packet capture listener.
+* **Security Scanner & History:**
+  * `POST /api/scan?host={host}&startPort={start}&endPort={end}&timeout={timeout}`: Runs socket scanner.
+  * `GET /api/history`: Loads scan records saved in database logs.
+  * `GET /api/report/pdf?host={host}`: Exports PDF report matching findings.
+
+---
+
 ## ⚙️ Configuration & Customization
 
 ### Database Swap (H2 to MySQL)
