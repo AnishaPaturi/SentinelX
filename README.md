@@ -1,6 +1,6 @@
-# NSPECT // Network Security Audit Suite
+# SentinelX // Network Security Audit Suite
 
-An industry-grade, full-stack **Network Vulnerability Scanner and Mini Intrusion Detection System (IDS)**. NSPECT transitions a basic network diagnostic scanner into a premium security tool capable of concurrent subnet mapping, service banner grabbing, live packet analysis, security risk calculations, real-time alert logs, and compliance reporting.
+An industry-grade, full-stack **Network Vulnerability Scanner and Mini Intrusion Detection System (IDS)**. SentinelX transitions a basic network diagnostic scanner into a premium security tool capable of concurrent subnet mapping, service banner grabbing, live packet analysis, security risk calculations, real-time alert logs, and compliance reporting.
 
 ---
 

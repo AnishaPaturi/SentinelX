@@ -755,10 +755,10 @@ startxref
       <div className="landing-grid">
         {/* Left Column: Hero Branding & Feature Details */}
         <div className="hero-side">
-          <div className="hero-badge">NSPECT // SECURITY AUDIT SUITE</div>
+          <div className="hero-badge">SentinelX // SECURITY AUDIT SUITE</div>
           <h1>Network Security Vulnerability Scanner & IDS</h1>
           <p className="hero-desc">
-            A comprehensive, dual-use computer network diagnostics toolkit. NSPECT enables real-time service discovery, active version banner analysis, CVE vulnerability checking, traffic packet analysis, and heuristic intrusion detection.
+            A comprehensive, dual-use computer network diagnostics toolkit. SentinelX enables real-time service discovery, active version banner analysis, CVE vulnerability checking, traffic packet analysis, and heuristic intrusion detection.
           </p>
 
           <div className="landing-features">
@@ -1448,7 +1448,7 @@ startxref
                       }}
                     >
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                        {msg.sender === 'user' ? 'Auditor Query' : 'NSPECT Security Advisor'}
+                        {msg.sender === 'user' ? 'Auditor Query' : 'SentinelX Security Advisor'}
                       </div>
                       <div style={{ color: '#fff' }}>
                         {msg.sender === 'user' ? (
