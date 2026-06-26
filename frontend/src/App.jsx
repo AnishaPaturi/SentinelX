@@ -90,22 +90,34 @@ function App() {
   }, []);
 
   const verifyBackendConnection = (token) => {
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-    fetch(`${API_BASE}/history`, { headers })
+    fetch(`${API_BASE}/auth/ping`)
       .then(res => {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-        }
-        setBackendConnected(true);
-        setIsDemoMode(false);
-        if (token) {
-          loadHistory(token);
-          loadTopology(token);
+        if (res.ok) {
+          setBackendConnected(true);
+          setIsDemoMode(false);
+          if (token) {
+            const headers = { 'Authorization': `Bearer ${token}` };
+            fetch(`${API_BASE}/history`, { headers })
+              .then(histRes => {
+                if (histRes.status === 401 || histRes.status === 403) {
+                  handleLogout();
+                } else {
+                  loadHistory(token);
+                  loadTopology(token);
+                }
+              })
+              .catch(() => {
+                handleLogout();
+              });
+          }
+        } else {
+          setBackendConnected(false);
+          setIsDemoMode(true);
         }
       })
       .catch(() => {
         setBackendConnected(false);
-        setIsDemoMode(true); // Fallback to Demo mode automatically
+        setIsDemoMode(true);
       });
   };
 
