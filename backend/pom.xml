@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.scanner</groupId>
-    <artifactId>network-scanner-backend</artifactId>
+    <artifactId>sentinelx-backend</artifactId>
     <version>1.0.0</version>
-    <name>network-scanner-backend</name>
-    <description>Backend API for Network Vulnerability Scanner and Mini IDS</description>
+    <name>sentinelx-backend</name>
+    <description>Backend API for SentinelX Network Vulnerability Scanner and Mini IDS</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
