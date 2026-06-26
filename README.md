@@ -142,7 +142,14 @@ To enable live, database-backed Threat Intelligence queries instead of fallback 
    api.abuseipdb.key=YOUR_ABUSEIPDB_API_KEY
    ```
 
----
-
 ## ⚖️ License & Disclaimer
 This software is intended **for educational and network defense purposes only**. Do not execute scans or packet analysis against target environments without explicit authorization.
+
+---
+
+## ✍️ About the Author
+
+* **Author:** Anisha Paturi
+* **Role:** Computer Science Engineering Student
+* **Focus:** Computer Networks, Cyber Security, and Full-Stack Engineering
+
