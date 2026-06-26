@@ -2,8 +2,11 @@ package com.scanner.controller;
 
 import com.scanner.model.ScanResult;
 import com.scanner.model.NetworkNode;
+import com.scanner.model.PacketLog;
+import com.scanner.model.IdsAlert;
 import com.scanner.service.PortScannerService;
 import com.scanner.service.NetworkDiscoveryService;
+import com.scanner.service.PacketCaptureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +23,31 @@ public class ScanController {
     private NetworkDiscoveryService networkDiscoveryService;
 
     @Autowired
+    private PacketCaptureService packetCaptureService;
+
+    @Autowired
     private com.scanner.service.ReportService reportService;
+
+    @GetMapping("/sniffer/packets")
+    public List<PacketLog> getPackets() {
+        return packetCaptureService.getPacketLogs();
+    }
+
+    @GetMapping("/sniffer/alerts")
+    public List<IdsAlert> getAlerts() {
+        return packetCaptureService.getAlerts();
+    }
+
+    @PostMapping("/sniffer/toggle")
+    public boolean toggleSniffer() {
+        packetCaptureService.toggleActive();
+        return packetCaptureService.isActive();
+    }
+
+    @GetMapping("/sniffer/status")
+    public boolean getSnifferStatus() {
+        return packetCaptureService.isActive();
+    }
 
     @GetMapping("/devices")
     public List<NetworkNode> getDiscoveredDevices() {

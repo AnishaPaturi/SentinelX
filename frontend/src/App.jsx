@@ -88,7 +88,10 @@ function App() {
         }
         setBackendConnected(true);
         setIsDemoMode(false);
-        if (token) loadHistory(token);
+        if (token) {
+          loadHistory(token);
+          loadTopology(token);
+        }
       })
       .catch(() => {
         setBackendConnected(false);
@@ -256,12 +259,13 @@ function App() {
     }
   };
 
-  // Simulated live packet generation (Module 6 & Module 7 IDS)
+  // Live packet polling (Module 6 & Module 7 IDS)
   useEffect(() => {
     let intervalId;
-    if (snifferActive) {
-      intervalId = setInterval(() => {
-        // Generate random packet
+
+    const fetchSnifferData = async () => {
+      if (isDemoMode) {
+        // Generate mock packet
         const protocols = ['TCP', 'UDP', 'HTTP', 'DNS', 'ARP', 'ICMP', 'SSH', 'HTTPS'];
         const protocol = protocols[Math.floor(Math.random() * protocols.length)];
         const localIPs = ['192.168.1.1', '192.168.1.12', '192.168.1.45', '192.168.1.100', '192.168.1.15'];
@@ -318,10 +322,63 @@ function App() {
           };
           setAlerts(prev => [newAlert, ...prev]);
         }
-      }, 1000);
+      } else {
+        // Real Backend Query
+        const token = user ? user.token : null;
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        
+        try {
+          // Fetch Packets
+          const resPackets = await fetch(`${API_BASE}/sniffer/packets`, { headers });
+          if (resPackets.ok) {
+            const dataPackets = await resPackets.json();
+            setPackets(dataPackets);
+            
+            // Calculate dynamic stats
+            setPacketStats(prev => {
+              const total = dataPackets.length;
+              const rate = snifferActive ? Math.min(15, Math.max(1, total - prev.total)) : 0;
+              const avgLen = dataPackets.length > 0 ? dataPackets[0].len : 500;
+              const bandwidth = Math.floor(rate * avgLen * 8 / 1000);
+              return { total: Math.max(prev.total, total), rate, bandwidth };
+            });
+          }
+
+          // Fetch Alerts
+          const resAlerts = await fetch(`${API_BASE}/sniffer/alerts`, { headers });
+          if (resAlerts.ok) {
+            const dataAlerts = await resAlerts.json();
+            setAlerts(dataAlerts);
+          }
+        } catch (err) {
+          console.error("Error polling sniffer: ", err);
+        }
+      }
+    };
+
+    if (snifferActive) {
+      fetchSnifferData();
+      intervalId = setInterval(fetchSnifferData, 1000);
     }
-    return () => clearInterval(intervalId);
-  }, [snifferActive]);
+  }, [snifferActive, isDemoMode, user]);
+
+  const toggleSnifferStatus = async () => {
+    const nextState = !snifferActive;
+    setSnifferActive(nextState);
+
+    if (!isDemoMode) {
+      const token = user ? user.token : null;
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      try {
+        await fetch(`${API_BASE}/sniffer/toggle`, {
+          method: 'POST',
+          headers
+        });
+      } catch (err) {
+        console.error("Error toggling backend sniffer: ", err);
+      }
+    }
+  };
 
   // Port Scanning Handler (Module 2, 3, 4, 5)
   const triggerScan = async () => {
@@ -534,13 +591,51 @@ startxref
   };
 
   // Node details for Interactive Topology (Module 1, 10 & 17)
-  const networkNodes = [
+  const [networkNodes, setNetworkNodes] = useState([
     { id: 'gateway', label: 'Gateway Router', ip: '192.168.1.1', mac: '00:1A:2B:3C:4D:5E', vendor: 'Cisco Systems', os: 'IOS XE', latency: '2 ms', ports: '80, 443', risk: 'LOW', x: 250, y: 80 },
     { id: 'laptop', label: 'Workstation Dell', ip: '192.168.1.12', mac: 'BC:83:85:D9:D2:11', vendor: 'Dell Inc.', os: 'Windows 11', latency: '15 ms', ports: '135, 139, 445', risk: 'MEDIUM', x: 100, y: 220 },
     { id: 'server', label: 'Database Server', ip: '192.168.1.45', mac: '00:50:56:AB:CD:12', vendor: 'VMware', os: 'Ubuntu Server 22.04', latency: '4 ms', ports: '22, 80, 3306', risk: 'CRITICAL', x: 250, y: 220 },
     { id: 'printer', label: 'HP Network Printer', ip: '192.168.1.100', mac: 'A4:5E:60:DF:1E:54', vendor: 'HP Inc.', os: 'Embedded RTOS', latency: '22 ms', ports: '9100, 631', risk: 'LOW', x: 400, y: 220 },
     { id: 'phone', label: 'Android SmartPhone', ip: '192.168.1.15', mac: 'F8:E9:03:77:88:AC', vendor: 'Samsung', os: 'Android 13', latency: '35 ms', ports: 'None Open', risk: 'LOW', x: 250, y: 350 }
-  ];
+  ]);
+  const [loadingTopology, setLoadingTopology] = useState(false);
+
+  const loadTopology = async (token) => {
+    const activeToken = token || (user ? user.token : null);
+    if (!activeToken) return;
+
+    setLoadingTopology(true);
+    const headers = activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {};
+
+    try {
+      const res = await fetch(`${API_BASE}/devices`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setNetworkNodes(data);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading network topology: ", err);
+    } finally {
+      setLoadingTopology(false);
+    }
+  };
+
+  const getOverallRisk = () => {
+    let maxRisk = 'LOW';
+    networkNodes.forEach(node => {
+      const risk = node.risk ? node.risk.toUpperCase() : 'LOW';
+      if (risk === 'CRITICAL') maxRisk = 'CRITICAL';
+      else if (risk === 'HIGH' && maxRisk !== 'CRITICAL') maxRisk = 'HIGH';
+      else if (risk === 'MEDIUM' && maxRisk !== 'CRITICAL' && maxRisk !== 'HIGH') maxRisk = 'MEDIUM';
+    });
+
+    if (maxRisk === 'CRITICAL') return { score: 90, grade: 'CRITICAL RISK', color: 'var(--color-critical)' };
+    if (maxRisk === 'HIGH') return { score: 72, grade: 'HIGH RISK', color: 'var(--color-high)' };
+    if (maxRisk === 'MEDIUM') return { score: 45, grade: 'MODERATE RISK', color: 'var(--color-medium)' };
+    return { score: 15, grade: 'LOW RISK', color: 'var(--color-low)' };
+  };
 
   if (!user) {
     return (
@@ -730,7 +825,7 @@ startxref
               <div className="dashboard-grid">
                 <div className="card metric-card">
                   <div className="metric-header">Total Devices Discovered</div>
-                  <div className="metric-value">5 Active</div>
+                  <div className="metric-value">{networkNodes.length} Active</div>
                   <div className="metric-footer">Across local subnet /24</div>
                 </div>
                 <div className="card metric-card">
@@ -744,9 +839,16 @@ startxref
                   <div className="metric-footer">Real-time Sniffer detection</div>
                 </div>
                 <div className="card metric-card">
-                  <div className="metric-header">Overall Risk Score</div>
-                  <div className="metric-value" style={{ color: 'var(--color-high)' }}>72 / 100</div>
-                  <div className="metric-footer">Security Grade: HIGH RISK</div>
+                  {(() => {
+                    const risk = getOverallRisk();
+                    return (
+                      <>
+                        <div className="metric-header">Overall Risk Score</div>
+                        <div className="metric-value" style={{ color: risk.color }}>{risk.score} / 100</div>
+                        <div className="metric-footer">Security Grade: {risk.grade}</div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -946,7 +1048,7 @@ startxref
                     <h2>Live Packet Sniffer Log</h2>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>sniffing promiscuously on selected network interfaces</p>
                   </div>
-                  <button className={`btn ${snifferActive ? 'btn-secondary' : 'btn-primary'}`} onClick={() => setSnifferActive(!snifferActive)}>
+                  <button className={`btn ${snifferActive ? 'btn-secondary' : 'btn-primary'}`} onClick={toggleSnifferStatus}>
                     {snifferActive ? "Pause Sniffer" : "Resume Sniffer"}
                   </button>
                 </div>
@@ -982,35 +1084,66 @@ startxref
           {/* TAB 4: NETWORK MAP TOPOLOGY */}
           {activeTab === 'topology' && (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h2>Interactive Network Topology Map</h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Select nodes to inspect operating system guesses, hardware manufacturers, latency, and vulnerabilities.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2>Interactive Network Topology Map</h2>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Select nodes to inspect operating system guesses, hardware manufacturers, latency, and vulnerabilities.</p>
+                </div>
+                {!isDemoMode && (
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ padding: '8px 16px', fontSize: '12px' }}
+                    onClick={() => loadTopology()}
+                    disabled={loadingTopology}
+                  >
+                    {loadingTopology ? "Scanning Subnet..." : "Discover Devices"}
+                  </button>
+                )}
               </div>
 
               <div className="topology-container">
                 <svg width="600" height="450" style={{ background: 'transparent' }}>
-                  {/* Connection Lines */}
-                  <line x1="250" y1="80" x2="100" y2="220" stroke="var(--border-subtle)" strokeWidth="2" />
-                  <line x1="250" y1="80" x2="250" y2="220" stroke="var(--border-subtle)" strokeWidth="2" />
-                  <line x1="250" y1="80" x2="400" y2="220" stroke="var(--border-subtle)" strokeWidth="2" />
-                  <line x1="250" y1="220" x2="250" y2="350" stroke="var(--border-subtle)" strokeWidth="2" />
-
-                  {/* Gateway Router */}
-                  {networkNodes.map(node => (
-                    <g key={node.id} className="node-group" onClick={() => setSelectedNode(node)}>
-                      <circle 
-                        cx={node.x} 
-                        cy={node.y} 
-                        r="24" 
-                        className={`node-circle ${selectedNode?.id === node.id ? 'active' : ''} ${node.risk === 'CRITICAL' ? 'risk-critical' : node.risk === 'HIGH' ? 'risk-high' : node.risk === 'MEDIUM' ? 'risk-medium' : ''}`} 
+                  {/* Dynamic Connection Lines */}
+                  {(() => {
+                    const gatewayNode = networkNodes.find(n => n.ip.endsWith(".1") || n.id.includes("gateway")) || networkNodes[0];
+                    return gatewayNode && networkNodes.filter(n => n.id !== gatewayNode.id).map(node => (
+                      <line 
+                        key={`link_${node.id}`} 
+                        x1={gatewayNode.x} 
+                        y1={gatewayNode.y} 
+                        x2={node.x} 
+                        y2={node.y} 
+                        stroke="var(--border-subtle)" 
+                        strokeWidth="2" 
                       />
-                      <text x={node.x} y={node.y + 4} className="node-label">
-                        {node.id === 'gateway' ? 'RT' : node.id === 'laptop' ? 'PC' : node.id === 'server' ? 'SRV' : node.id === 'printer' ? 'PRN' : 'MOB'}
-                      </text>
-                      <text x={node.x} y={node.y + 36} className="node-label">{node.label}</text>
-                      <text x={node.x} y={node.y + 46} className="node-ip">{node.ip}</text>
-                    </g>
-                  ))}
+                    ));
+                  })()}
+
+                  {/* Nodes */}
+                  {networkNodes.map(node => {
+                    const lastOctet = node.ip.substring(node.ip.lastIndexOf('.') + 1);
+                    let initial = 'PC';
+                    if (lastOctet === "1" || node.id.includes("gateway")) initial = 'RT';
+                    else if (node.label.includes("Server")) initial = 'SRV';
+                    else if (node.label.includes("Printer")) initial = 'PRN';
+                    else if (node.label.includes("Phone") || node.label.includes("Mobile")) initial = 'MOB';
+
+                    return (
+                      <g key={node.id} className="node-group" onClick={() => setSelectedNode(node)}>
+                        <circle 
+                          cx={node.x} 
+                          cy={node.y} 
+                          r="24" 
+                          className={`node-circle ${selectedNode?.id === node.id ? 'active' : ''} ${node.risk === 'CRITICAL' ? 'risk-critical' : node.risk === 'HIGH' ? 'risk-high' : node.risk === 'MEDIUM' ? 'risk-medium' : ''}`} 
+                        />
+                        <text x={node.x} y={node.y + 4} className="node-label">
+                          {initial}
+                        </text>
+                        <text x={node.x} y={node.y + 36} className="node-label">{node.label}</text>
+                        <text x={node.x} y={node.y + 46} className="node-ip">{node.ip}</text>
+                      </g>
+                    );
+                  })}
                 </svg>
 
                 {selectedNode && (
