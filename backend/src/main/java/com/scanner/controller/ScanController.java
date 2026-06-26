@@ -1,7 +1,9 @@
 package com.scanner.controller;
 
 import com.scanner.model.ScanResult;
+import com.scanner.model.NetworkNode;
 import com.scanner.service.PortScannerService;
+import com.scanner.service.NetworkDiscoveryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +17,15 @@ public class ScanController {
     private PortScannerService portScannerService;
 
     @Autowired
+    private NetworkDiscoveryService networkDiscoveryService;
+
+    @Autowired
     private com.scanner.service.ReportService reportService;
+
+    @GetMapping("/devices")
+    public List<NetworkNode> getDiscoveredDevices() {
+        return networkDiscoveryService.discoverDevices();
+    }
 
     @PostMapping("/scan")
     public List<ScanResult> triggerScan(
