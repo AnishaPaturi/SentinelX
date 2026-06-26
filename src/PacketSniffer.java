@@ -23,8 +23,25 @@ public class PacketSniffer {
             i++;
         }
 
-        // CHANGE THIS if needed (your WiFi adapter index)
-        PcapNetworkInterface nif = interfaces.get(5);
+        System.out.print("\nEnter the network interface index to capture packets (0 to " + (interfaces.size() - 1) + "): ");
+        int selectedIndex = 0;
+        try (java.util.Scanner scanner = new java.util.Scanner(System.in)) {
+            if (scanner.hasNextInt()) {
+                selectedIndex = scanner.nextInt();
+            } else {
+                System.out.println("Invalid index. Defaulting to index 0.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error reading index. Defaulting to index 0.");
+        }
+
+        if (selectedIndex < 0 || selectedIndex >= interfaces.size()) {
+            System.out.println("Selected index out of range. Defaulting to index 0.");
+            selectedIndex = 0;
+        }
+
+        PcapNetworkInterface nif = interfaces.get(selectedIndex);
+        System.out.println("Selected network interface: " + nif.getName());
 
         int snapLen = 65536;
         int timeout = 10;
