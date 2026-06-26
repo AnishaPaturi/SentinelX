@@ -70,7 +70,7 @@ function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const API_BASE = 'http://localhost:8080/api';
+  const API_BASE = 'http://localhost:8082/api';
 
   // Check Backend Connection and session on Mount
   useEffect(() => {
@@ -469,7 +469,7 @@ function App() {
       }
     };
 
-    if (snifferActive) {
+    if (snifferActive && (isDemoMode || user)) {
       fetchSnifferData();
       intervalId = setInterval(fetchSnifferData, 1000);
     }

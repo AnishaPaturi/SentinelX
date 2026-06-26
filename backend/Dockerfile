@@ -11,5 +11,5 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/network-scanner-backend-*.jar app.jar
-EXPOSE 8080
+EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "app.jar"]
