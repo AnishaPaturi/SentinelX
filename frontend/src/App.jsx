@@ -70,7 +70,7 @@ function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const API_BASE = 'http://localhost:8082/api';
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api';
 
   // Check Backend Connection and session on Mount
   useEffect(() => {
