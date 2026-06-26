@@ -1,0 +1,53 @@
+# Dependencies
+**/node_modules/
+**/jspm_packages/
+**/web_modules/
+
+# Build outputs
+**/target/
+**/dist/
+**/out/
+**/.next/
+**/.nuxt/
+**/bin/
+**/build/
+
+# Logs and databases
+*.log
+**/logs/
+*.sqlite
+*.db
+
+# OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated Scan PDF Reports
+scan-report-*.pdf
+demo-scan-report-*.pdf
+scan-report-*.txt
+demo-scan-report-*.txt
