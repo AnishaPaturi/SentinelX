@@ -20,6 +20,9 @@ const HistoryIcon = () => (
 const IntelIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>
 );
+const AssistantIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+);
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -59,6 +62,13 @@ function App() {
   const [intelIp, setIntelIp] = useState('185.190.140.23');
   const [intelResult, setIntelResult] = useState(null);
   const [intelLoading, setIntelLoading] = useState(false);
+
+  // AI Security Assistant States
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'ai', text: "Hello! I am your AI Security Assistant. Ask me about vulnerabilities, ports (e.g., 'Port 445'), attacks ('SYN Flood'), or exploits ('CVE-2011-2523') to get instant mitigation advice." }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   const API_BASE = 'http://localhost:8080/api';
 
@@ -257,6 +267,97 @@ function App() {
     } finally {
       setIntelLoading(false);
     }
+  };
+
+  const sendChatMessage = async (e) => {
+    if (e) e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userText = chatInput;
+    setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
+    setChatInput('');
+    setChatLoading(true);
+
+    if (isDemoMode) {
+      await new Promise(r => setTimeout(r, 650));
+      let reply = "I am operating in offline demo mode. Please launch the Spring Boot backend to query my full knowledge base.";
+      const q = userText.toLowerCase();
+      if (q.includes("445") || q.includes("smb")) {
+        reply = "### 🛡️ Port 445 (Microsoft-DS / SMB) Vulnerability Report\n\n**Risk Level:** 🔴 CRITICAL\n\n**Threat Overview:** Port 445 runs SMB. Outdated versions are vulnerable to RCE exploits like **EternalBlue (MS17-010)**, used in WannaCry.\n\n**Mitigation Commands:**\n`sudo iptables -A INPUT -p tcp --dport 445 -j DROP`";
+      } else if (q.includes("21") || q.includes("ftp")) {
+        reply = "### 🛡️ Port 21 (FTP) Vulnerability Report\n\n**Risk Level:** 🟠 HIGH\n\n**Threat Overview:** Plaintext credentials leaks.\n\n**Mitigation Commands:**\n`sudo iptables -A INPUT -p tcp --dport 21 -j DROP`";
+      } else if (q.includes("23") || q.includes("telnet")) {
+        reply = "### 🛡️ Port 23 (Telnet) Vulnerability Report\n\n**Risk Level:** 🔴 CRITICAL\n\n**Threat Overview:** Insecure plaintext Telnet administrative connection sniffing.\n\n**Mitigation Commands:**\n`sudo iptables -A INPUT -p tcp --dport 23 -j DROP`";
+      } else if (q.includes("syn") || q.includes("flood")) {
+        reply = "### 🛡️ SYN Flood DDoS Mitigation Report\n\n**Threat Overview:** TCP connection table starvation.\n\n**Mitigation Commands:**\n`sysctl -w net.ipv4.tcp_syncookies=1`";
+      } else if (q.includes("arp") || q.includes("spoof")) {
+        reply = "### 🛡️ ARP Spoofing / Poisoning Defense\n\n**Threat Overview:** Local network IP redirection.\n\n**Mitigation Commands:**\n`arp -s 192.168.1.1 00:11:22:33:44:55`";
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+      setChatLoading(false);
+      return;
+    }
+
+    try {
+      const token = user ? user.token : null;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE}/ai/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message: userText })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setChatMessages(prev => [...prev, { sender: 'ai', text: data.response }]);
+      } else {
+        setChatMessages(prev => [...prev, { sender: 'ai', text: "Error: Failed to retrieve security guidance from AI service." }]);
+      }
+    } catch (err) {
+      setChatMessages(prev => [...prev, { sender: 'ai', text: "Error connecting to AI chat backend." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const renderAdviceText = (text) => {
+    if (!text) return null;
+    return text.split('\n').map((line, idx) => {
+      let clean = line.trim();
+      if (clean.startsWith("### ")) {
+        return <h3 key={idx} style={{ color: 'var(--cyber-blue)', marginTop: '14px', marginBottom: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '4px' }}>{clean.substring(4)}</h3>;
+      }
+      if (clean.startsWith("* ")) {
+        return <li key={idx} style={{ marginLeft: '20px', listStyleType: 'square', color: 'var(--text-primary)', margin: '4px 0', fontSize: '13px' }}>{clean.substring(2)}</li>;
+      }
+      if (clean.startsWith("`") && clean.endsWith("`")) {
+        const cmd = clean.replaceAll("`", "");
+        return (
+          <pre key={idx} style={{ background: 'rgba(0, 0, 0, 0.4)', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '10px 14px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#10b981', margin: '8px 0', overflowX: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <code>{cmd}</code>
+            <button 
+              className="btn" 
+              style={{ padding: '2px 8px', fontSize: '10px', height: '20px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-subtle)' }}
+              onClick={() => navigator.clipboard.writeText(cmd)}
+            >
+              Copy
+            </button>
+          </pre>
+        );
+      }
+      if (clean.includes("**")) {
+        const parts = clean.split("**");
+        return (
+          <p key={idx} style={{ margin: '6px 0', fontSize: '13px' }}>
+            {parts.map((p, i) => i % 2 === 1 ? <strong key={i} style={{ color: '#fff' }}>{p}</strong> : p)}
+          </p>
+        );
+      }
+      return <p key={idx} style={{ margin: '4px 0', color: 'var(--text-secondary)', fontSize: '13px' }}>{line}</p>;
+    });
   };
 
   // Live packet polling (Module 6 & Module 7 IDS)
@@ -783,6 +884,9 @@ startxref
             <li className={`nav-item ${activeTab === 'intel' ? 'active' : ''}`} onClick={() => setActiveTab('intel')}>
               <IntelIcon /> Threat Intel
             </li>
+            <li className={`nav-item ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}>
+              <AssistantIcon /> AI Assistant
+            </li>
             <li className={`nav-item ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
               <HistoryIcon /> Scan History
             </li>
@@ -1303,6 +1407,76 @@ startxref
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 6: AI SECURITY ASSISTANT */}
+          {activeTab === 'assistant' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: 'calc(100vh - 200px)' }}>
+              <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '20px' }}>
+                <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <h2>AI Cybersecurity Assistant</h2>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Get instant mitigation rules, firewall settings, and exploits advice for your network scans.</p>
+                </div>
+
+                {/* Message Log Container */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '6px', marginBottom: '16px' }}>
+                  {chatMessages.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                        maxWidth: '85%',
+                        background: msg.sender === 'user' ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-subtle)',
+                        borderLeft: msg.sender === 'ai' ? '4px solid var(--cyber-blue)' : '1px solid var(--border-subtle)',
+                        borderRadius: '12px',
+                        padding: '14px 18px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+                      }}
+                    >
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                        {msg.sender === 'user' ? 'Auditor Query' : 'NSPECT Security Advisor'}
+                      </div>
+                      <div style={{ color: '#fff' }}>
+                        {msg.sender === 'user' ? (
+                          <p style={{ fontSize: '13.5px', whiteSpace: 'pre-wrap', margin: 0 }}>{msg.text}</p>
+                        ) : (
+                          renderAdviceText(msg.text)
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {chatLoading && (
+                    <div style={{ alignSelf: 'flex-start', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-subtle)', borderLeft: '4px solid var(--cyber-blue)', borderRadius: '12px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="status-dot online" style={{ width: '8px', height: '8px' }}></div>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>AI Advisor is analyzing security parameters...</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Controls */}
+                <form onSubmit={sendChatMessage} style={{ display: 'flex', gap: '12px' }}>
+                  <input 
+                    type="text" 
+                    className="cyber-input" 
+                    style={{ flex: 1 }}
+                    placeholder="Ask about vulnerabilities (e.g. 'Why is Port 445 dangerous?')" 
+                    value={chatInput} 
+                    onChange={e => setChatInput(e.target.value)} 
+                    disabled={chatLoading}
+                  />
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    style={{ padding: '0 24px' }}
+                    disabled={chatLoading}
+                  >
+                    Send Query
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 

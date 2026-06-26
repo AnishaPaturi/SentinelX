@@ -7,10 +7,13 @@ import com.scanner.model.IdsAlert;
 import com.scanner.service.PortScannerService;
 import com.scanner.service.NetworkDiscoveryService;
 import com.scanner.service.PacketCaptureService;
+import com.scanner.service.AiAssistantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api")
@@ -26,7 +29,19 @@ public class ScanController {
     private PacketCaptureService packetCaptureService;
 
     @Autowired
+    private AiAssistantService aiAssistantService;
+
+    @Autowired
     private com.scanner.service.ReportService reportService;
+
+    @PostMapping("/ai/chat")
+    public Map<String, String> chatWithAi(@RequestBody Map<String, String> request) {
+        String userMsg = request.get("message");
+        String reply = aiAssistantService.generateSecurityAdvice(userMsg);
+        Map<String, String> response = new HashMap<>();
+        response.put("response", reply);
+        return response;
+    }
 
     @GetMapping("/sniffer/packets")
     public List<PacketLog> getPackets() {

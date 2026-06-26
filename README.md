@@ -160,6 +160,26 @@ To enable live, database-backed Threat Intelligence queries instead of fallback 
    api.abuseipdb.key=YOUR_ABUSEIPDB_API_KEY
    ```
 
+### 🤖 AI Cybersecurity Assistant
+The suite integrates an interactive security assistant. You can query about open ports, protocol threats, or specific CVEs (e.g. "Why is Port 445 dangerous?" or "What is CVE-2011-2523?") to retrieve instant explanations, risk analysis, and copyable terminal mitigation commands (`iptables` blocks, Windows Defender setups, or service upgrades).
+
+---
+
+## 🐳 Docker Deployment Setup
+
+You can containerize and launch the entire stack (backend API, database configuration, and frontend dashboard) with a single command:
+
+1. **Prerequisite:** Make sure Docker and Docker Compose are installed on your machine.
+2. **Build and Run:**
+   ```bash
+   docker-compose up --build
+   ```
+3. Once running, access:
+   - **Frontend Portal:** [http://localhost:80](http://localhost:80)
+   - **Backend API:** [http://localhost:8080](http://localhost:8080)
+
+---
+
 ## ⚖️ License & Disclaimer
 This software is intended **for educational and network defense purposes only**. Do not execute scans or packet analysis against target environments without explicit authorization.
 
@@ -170,4 +190,5 @@ This software is intended **for educational and network defense purposes only**.
 * **Author:** Anisha Paturi
 * **Role:** Computer Science Engineering Student
 * **Focus:** Computer Networks, Cyber Security, and Full-Stack Engineering
+
 
