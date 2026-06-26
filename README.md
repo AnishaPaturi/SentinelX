@@ -41,8 +41,8 @@ graph TD
    ```bash
    mvn spring-boot:run
    ```
-3. The server will run on [http://localhost:8080](http://localhost:8080).
-4. **Database Console:** Access the in-memory H2 Console at `http://localhost:8080/h2-console` (Username: `sa`, Password: `password`, JDBC URL: `jdbc:h2:mem:scannerdb`).
+3. The server will run on [http://localhost:8082](http://localhost:8082).
+4. **Database Console:** Access the in-memory H2 Console at `http://localhost:8082/h2-console` (Username: `sa`, Password: `password`, JDBC URL: `jdbc:h2:mem:scannerdb`).
 
 ---
 
@@ -176,7 +176,7 @@ You can containerize and launch the entire stack (backend API, database configur
    ```
 3. Once running, access:
    - **Frontend Portal:** [http://localhost:80](http://localhost:80)
-   - **Backend API:** [http://localhost:8080](http://localhost:8080)
+   - **Backend API:** [http://localhost:8082](http://localhost:8082)
 
 ---
 
